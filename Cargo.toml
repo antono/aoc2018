@@ -2,5 +2,10 @@
 name = "aoc2018"
 version = "0.1.0"
 authors = ["Anton Vasiljev <antono.vasiljev@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "utils"
+path = "src/utils.rs"
 
 [dependencies]

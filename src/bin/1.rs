@@ -54,26 +54,12 @@
 // -6, +3, +8, +5, -6 first reaches 5 twice.
 // +7, +7, -2, -7, -4 first reaches 14 twice.
 
-use std::fs::File;
-use std::io::prelude::*;
+extern crate utils;
+
 use std::collections::HashSet;
 
-// TODO: Share between puzzles...
-fn read_puzzle_input(number: u8) -> String {
-    let mut input =
-        File::open(format!("./inputs/{}.txt", number)).expect("Puzzle input not found...");
-
-    let mut text = String::new();
-
-    input
-        .read_to_string(&mut text)
-        .expect("cannot read input file");
-
-    return text;
-}
-
 fn part_one() {
-    let input = read_puzzle_input(1);
+    let input = utils::read_puzzle_input(1);
     let mut result: i32 = 0;
 
     for line in input.lines() {
@@ -85,7 +71,7 @@ fn part_one() {
 }
 
 fn part_two() {
-    let input = read_puzzle_input(1);
+    let input = utils::read_puzzle_input(1);
     let mut result: i32 = 0;
     let mut seen_freqs: HashSet<i32> = HashSet::new();
 
