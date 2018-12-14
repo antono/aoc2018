@@ -95,11 +95,65 @@ fn part_one() {
 // above, this is found by removing the differing character from either ID,
 // producing fgij.)
 
+use std::char;
+
 fn part_two() {
     let input = utils::read_puzzle_input(2);
+    let mut results: HashMap<String, Vec<_>> = HashMap::new();
+    let mut lines_count = 0;
+    let mut ids_count = 0;
 
+    for id in input.lines() {
+        let ids = all_valiants_with_1_letter_replaced(id);
+
+        lines_count += 1;
+
+        for id_changed in ids {
+            ids_count += 1;
+            results.entry(id_changed)
+                .and_modify(|vec| vec.push(id.clone()))
+                .or_insert(vec!(id));
+        }
+    }
+
+    let mut res = vec!();
+
+    for (matcher, ids) in &results {
+        if ids.len() > 1 {
+            res.push((matcher.clone(), ids.clone()));
+        }
+    }
+
+    println!("{}", "-".repeat(100));
+
+    for tup in &res {
+        println!("{:?}", tup);
+    }
+
+    println!("{}", "-".repeat(100));
+
+    println!("Res.len: {:?}", res.len());
+    println!("Keys: {}", results.keys().len());
+    println!("Values: {}", results.values().fold(0, |acc, arr| acc + arr.len()));
+    println!("Lines: {}, ids: {}", lines_count, ids_count);
+}
+
+
+fn all_valiants_with_1_letter_replaced(id: &str) -> Vec<String> {
+    let mut result: Vec<String> = vec!();
+    let id_map = id.chars().collect::<Vec<char>>();
+    let size = id.len();
+
+    for idx in 0..size {
+        let mut cur_map = id_map.clone();
+        cur_map[idx] = '0';
+        result.push(cur_map.into_iter().collect());
+    }
+
+    return result;
 }
 
 fn main() {
-    part_one();
+    // part_one();
+    part_two();
 }
