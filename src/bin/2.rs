@@ -154,6 +154,6 @@ fn all_valiants_with_1_letter_replaced(id: &str) -> Vec<String> {
 }
 
 fn main() {
-    // part_one();
+    part_one();
     part_two();
 }
