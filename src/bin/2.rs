@@ -104,7 +104,7 @@ fn part_two() {
     let mut ids_count = 0;
 
     for id in input.lines() {
-        let ids = all_valiants_with_1_letter_replaced(id);
+        let ids = all_variants_with_1_letter_replaced(id);
 
         lines_count += 1;
 
@@ -139,7 +139,7 @@ fn part_two() {
 }
 
 
-fn all_valiants_with_1_letter_replaced(id: &str) -> Vec<String> {
+fn all_variants_with_1_letter_replaced(id: &str) -> Vec<String> {
     let mut result: Vec<String> = vec!();
     let id_map = id.chars().collect::<Vec<char>>();
     let size = id.len();
