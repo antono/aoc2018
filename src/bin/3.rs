@@ -120,14 +120,20 @@ fn map_claim(map: &mut Vec<Vec<Vec<u32>>>, claim: &Claim) {
     }
 }
 
-fn part_one() {
-    let input = utils::read_puzzle_input(3);
+fn map_claims(string: String) -> Vec<Vec<Vec<u32>>> {
     let mut map = init_map(1000);
 
-    for line in input.lines() {
+    for line in string.lines() {
         let claim = parse_claim(line).unwrap();
         map_claim(&mut map, &claim);
     }
+
+    return map;
+}
+
+fn part_one() {
+    let input = utils::read_puzzle_input(3);
+    let map = map_claims(input);
 
     let mut counter = 0;
 
@@ -141,6 +147,46 @@ fn part_one() {
     println!("Total inches of fabric within 2 or more claims: {}", counter);
 }
 
+// --- Part Two ---
+// Amidst the chaos, you notice that exactly one claim doesn't overlap
+// by even a single square inch of fabric with any other claim. If you
+// can somehow draw attention to it, maybe the Elves will be able to
+// make Santa's suit after all!
+//
+// For example, in the claims above, only claim 3 is intact after all
+// claims are made.
+//
+// What is the ID of the only claim that doesn't overlap?
+
+use std::collections::HashSet;
+
+fn part_two() {
+    let input = utils::read_puzzle_input(3);
+    let map = map_claims(input);
+    let mut conflicts = HashSet::new();
+    let mut singles = HashSet::new();
+
+    for x in map {
+        for intersection in x {
+            if intersection.len() == 1 {
+                singles.insert(intersection.first().unwrap().clone());
+            } else if intersection.len() >= 2 {
+                for conflicting in intersection {
+                    conflicts.insert(conflicting.clone());
+                }
+            }
+        }
+    }
+
+    // println!("Conflicts: {:?}", conflicts);
+    // println!("Singles: {:?}", singles);
+
+    for x in singles.difference(&conflicts) {
+        println!("Non overlaping claim: {}", x);
+    }
+}
+
 fn main() {
     part_one();
+    part_two();
 }
