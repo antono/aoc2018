@@ -57,15 +57,15 @@ fn part_one() {
         for chr in line.chars() {
             counter
                 .entry(chr)
-                .and_modify(|count| { *count += 1})
+                .and_modify(|count| *count += 1)
                 .or_insert(1);
         }
 
-        if counter.values().find(|v| { **v == 2 }).is_some() {
+        if counter.values().find(|v| **v == 2).is_some() {
             seen_two_letters_count += 1;
         }
 
-        if counter.values().find(|v| { **v == 3 }).is_some() {
+        if counter.values().find(|v| **v == 3).is_some() {
             seen_three_letters_count += 1;
         }
     }
@@ -110,13 +110,14 @@ fn part_two() {
 
         for id_changed in ids {
             ids_count += 1;
-            results.entry(id_changed)
+            results
+                .entry(id_changed)
                 .and_modify(|vec| vec.push(id.clone()))
-                .or_insert(vec!(id));
+                .or_insert(vec![id]);
         }
     }
 
-    let mut res = vec!();
+    let mut res = vec![];
 
     for (matcher, ids) in &results {
         if ids.len() > 1 {
@@ -134,13 +135,15 @@ fn part_two() {
 
     println!("Res.len: {:?}", res.len());
     println!("Keys: {}", results.keys().len());
-    println!("Values: {}", results.values().fold(0, |acc, arr| acc + arr.len()));
+    println!(
+        "Values: {}",
+        results.values().fold(0, |acc, arr| acc + arr.len())
+    );
     println!("Lines: {}, ids: {}", lines_count, ids_count);
 }
 
-
 fn all_variants_with_1_letter_replaced(id: &str) -> Vec<String> {
-    let mut result: Vec<String> = vec!();
+    let mut result: Vec<String> = vec![];
     let id_map = id.chars().collect::<Vec<char>>();
     let size = id.len();
 

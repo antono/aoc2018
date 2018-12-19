@@ -58,11 +58,10 @@
 
 #[macro_use]
 extern crate lazy_static;
-extern crate utils;
 extern crate regex;
+extern crate utils;
 
 use regex::Regex;
-
 
 #[derive(Debug)]
 struct Claim {
@@ -73,22 +72,19 @@ struct Claim {
     height: u32,
 }
 
-
 fn parse_claim(input: &str) -> Option<Claim> {
     lazy_static! {
         static ref CLAIM_REGEX: Regex = Regex::new(r"#(\d+) @ (\d+),(\d+): (\d+)x(\d+)").unwrap();
     }
 
     match CLAIM_REGEX.captures(input) {
-        Some(captures) => Some(
-            Claim {
-                id: captures[1].parse().unwrap(),
-                offset_x: captures[2].parse().unwrap(),
-                offset_y: captures[3].parse().unwrap(),
-                width: captures[4].parse().unwrap(),
-                height: captures[5].parse().unwrap(),
-            }
-        ),
+        Some(captures) => Some(Claim {
+            id: captures[1].parse().unwrap(),
+            offset_x: captures[2].parse().unwrap(),
+            offset_y: captures[3].parse().unwrap(),
+            width: captures[4].parse().unwrap(),
+            height: captures[5].parse().unwrap(),
+        }),
         None => None,
     }
 }
@@ -144,7 +140,10 @@ fn part_one() {
             }
         }
     }
-    println!("Total inches of fabric within 2 or more claims: {}", counter);
+    println!(
+        "Total inches of fabric within 2 or more claims: {}",
+        counter
+    );
 }
 
 // --- Part Two ---
