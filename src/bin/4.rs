@@ -97,9 +97,7 @@ struct ShiftTimeline {
 
 impl ShiftTimeline {
     fn new() -> ShiftTimeline {
-        ShiftTimeline {
-            data: Vec::new(),
-        }
+        ShiftTimeline { data: Vec::new() }
     }
 
     fn sleep_minutes(&self) -> u32 {
@@ -240,9 +238,12 @@ fn part_one() {
     // let popular_minute = count_most_popular();
 
     let mut minute_counts: HashMap<u32, u32> = HashMap::new();
-    records_of_most_sleeping_guard.iter().cloned().map(|h| h.data).flatten().for_each(|el| {
-        *minute_counts.entry(el).or_insert(0) += 1
-    });
+    records_of_most_sleeping_guard
+        .iter()
+        .cloned()
+        .map(|h| h.data)
+        .flatten()
+        .for_each(|el| *minute_counts.entry(el).or_insert(0) += 1);
 
     let (sleep_mostly_on_minute, _) = get_kv_for_max_value(&minute_counts);
 
@@ -253,7 +254,10 @@ fn part_one() {
     // println!("{:#?}", minute_counts);
     println!("Most sleeping guard: {:?}", most_sleeping_guard);
     println!("Mostly sleep on minute: {:?}", sleep_mostly_on_minute);
-    println!("Result: {:#?}", sleep_mostly_on_minute * most_sleeping_guard);
+    println!(
+        "Result: {:#?}",
+        sleep_mostly_on_minute * most_sleeping_guard
+    );
 }
 
 fn main() {
