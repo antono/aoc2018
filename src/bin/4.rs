@@ -232,13 +232,13 @@ fn part_one() {
 
     let records = get_records(&actions);
     let sleep_counts = get_sleep_minutes_per_guard_id(&records);
-    let (most_sleeping_guard, _) = get_kv_for_max_value(&sleep_counts);
+    let (sleephead, _) = get_kv_for_max_value(&sleep_counts);
 
-    let records_of_most_sleeping_guard = records.get(&Some(most_sleeping_guard)).unwrap();
+    let records_of_sleephead = records.get(&Some(sleephead)).unwrap();
     // let popular_minute = count_most_popular();
 
     let mut minute_counts: HashMap<u32, u32> = HashMap::new();
-    records_of_most_sleeping_guard
+    records_of_sleephead
         .iter()
         .cloned()
         .map(|h| h.data)
@@ -250,9 +250,9 @@ fn part_one() {
     let (sleep_mostly_on_minute, _) = get_kv_for_max_value(&minute_counts);
 
     println!("--- Part 1 ---");
-    println!("Most sleeping guard: {:?}", most_sleeping_guard);
+    println!("Most sleeping guard: {:?}", sleephead);
     println!("Mostly sleep on minute: {:?}", sleep_mostly_on_minute);
-    println!("Result: {}", sleep_mostly_on_minute * most_sleeping_guard);
+    println!("Result: {}", sleep_mostly_on_minute * sleephead);
 }
 
 // --- Part Two ---
