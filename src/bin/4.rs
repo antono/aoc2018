@@ -243,23 +243,73 @@ fn part_one() {
         .cloned()
         .map(|h| h.data)
         .flatten()
-        .for_each(|el| *minute_counts.entry(el).or_insert(0) += 1);
+        .for_each(|el| {
+            minute_counts.entry(el).and_modify(|c| *c += 1).or_insert(1);
+        });
 
     let (sleep_mostly_on_minute, _) = get_kv_for_max_value(&minute_counts);
 
-    // let res2 = res.fold(init, |acc,el| acc.intersection(&))
-
-    // println!("{:?}", most_sleeping_guard);
-    // println!("{:#?}", records_of_most_sleeping_guard);
-    // println!("{:#?}", minute_counts);
+    println!("--- Part 1 ---");
     println!("Most sleeping guard: {:?}", most_sleeping_guard);
     println!("Mostly sleep on minute: {:?}", sleep_mostly_on_minute);
-    println!(
-        "Result: {:#?}",
-        sleep_mostly_on_minute * most_sleeping_guard
-    );
+    println!("Result: {}", sleep_mostly_on_minute * most_sleeping_guard);
+}
+
+// --- Part Two ---
+// Strategy 2: Of all guards, which guard is most frequently asleep on the same minute?
+//
+// In the example above, Guard #99 spent minute 45 asleep more than any other
+// guard or minute - three times in total. (In all other cases, any guard spent
+// any minute asleep at most twice.)
+//
+// What is the ID of the guard you chose multiplied by the minute you chose? (In
+// the above example, the answer would be 99 * 45 = 4455.)
+
+fn part_two() {
+    let input = utils::read_puzzle_input(4);
+    let mut actions: Vec<Action> = input.lines().filter_map(parse_action).collect();
+    actions.sort_by_key(|a| a.time);
+
+    let records = get_records(&actions);
+
+    // Option<GuardId> => HashMap<minute, count>
+    let mut minute_counters_by_guard: HashMap<Option<u32>, HashMap<u32, u32>> = HashMap::new();
+
+    // Calculate times each guard spent sleeping at each minute
+    for (guard_id, shift_timelines) in records {
+        let counters = minute_counters_by_guard.entry(guard_id).or_default();
+        for timeline in shift_timelines {
+            for minute in timeline.data {
+                counters.entry(minute).and_modify(|c| *c += 1).or_insert(1);
+            }
+        }
+    }
+
+    // Find minute most popular for sleep in scope of single guard id
+    let mut sleephead_id: Option<u32> = None;
+    let mut sleepy_minute = 0;
+    let mut sleepy_minute_used_times = 0;
+
+    for (guard_id, counters) in minute_counters_by_guard {
+        let (current_candidate_to_sleepy_minute, times) = get_kv_for_max_value(&counters);
+
+        if times > sleepy_minute_used_times {
+            sleepy_minute = current_candidate_to_sleepy_minute;
+            sleephead_id = guard_id;
+            sleepy_minute_used_times = times;
+        }
+    }
+
+    let sleephead = sleephead_id.unwrap();
+
+    println!("--- Part 2 ---");
+    println!("Sleephead ID: {}", sleephead);
+    println!("Sleepy Minute: {}", sleepy_minute);
+    println!("Sleepy Minute Used: {}", sleepy_minute_used_times);
+    println!("Solution: {}", sleephead * sleepy_minute);
 }
 
 fn main() {
     part_one();
+    part_two();
 }
