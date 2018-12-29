@@ -134,5 +134,5 @@ fn main() {
     polymer.pop(); // removing final newline
 
     part_one(&polymer);
-    part_two(&polymer)
+    part_two(&polymer);
 }
