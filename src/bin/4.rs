@@ -244,10 +244,7 @@ fn part_one() {
         .map(|h| h.data)
         .flatten()
         .for_each(|el| {
-            minute_counts
-                .entry(el)
-                .and_modify(|c| *c += 1)
-                .or_insert(1);
+            minute_counts.entry(el).and_modify(|c| *c += 1).or_insert(1);
         });
 
     let (sleep_mostly_on_minute, _) = get_kv_for_max_value(&minute_counts);
