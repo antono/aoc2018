@@ -67,7 +67,10 @@
 //
 extern crate indoc;
 
-#[derive(Debug, Eq)]
+use std::collections::{HashMap, HashSet};
+
+
+#[derive(Debug, Eq, Clone)]
 pub struct Point {
     id: String, // use &str ?
     x: i32,
@@ -92,6 +95,9 @@ impl Point {
         ) as u32
     }
 
+    //
+    // Return closest point or multiple points if ditance to all of them is the same...
+    //
     pub fn find_closest_points<'a>(&self, points: &'a Vec<Point>) -> Vec<&'a Point> {
         let mut closest_points = vec![]; // HashSet maybe?
         let mut closest_distance = 1000;
@@ -114,7 +120,93 @@ impl Point {
     }
 }
 
+struct World {
+    points: Vec<Point>,
+    map: Vec<Vec<String>>,
+    proximity_map: Vec<Vec<String>>,
+}
 
+impl World {
+    fn new(points: Vec<Point>) -> World {
+        let map = vec![vec![String::from("."); 10]; 10]; // 10x10
+        let proximity_map = vec![vec![String::from("."); 10]; 10]; // 10x10
+        let mut world = World { points, map, proximity_map };
+
+        world.build_map();
+        world.build_proximity_map();
+
+        world
+    }
+
+    fn build_map(&mut self) {
+        for point in self.points.iter() {
+            self.map[point.y as usize][point.x as usize] = point.id.clone();
+        }
+    }
+
+    fn build_proximity_map(&mut self) {
+        for (i, row) in self.map.iter().enumerate() {
+            for (j, col) in row.iter().enumerate() {
+                if col != "." {
+                    self.proximity_map[i][j] = col.clone();
+                    continue;
+                }
+
+                let point = Point::new("", j as i32, i as i32);
+                let closest = point.find_closest_points(&self.points);
+
+                if closest.len() > 1 {
+                    self.proximity_map[i][j] = String::from(".");
+                } else if closest.len() == 1 {
+                    let p = closest[0];
+                    self.proximity_map[i][j] = p.id.to_ascii_lowercase();
+                }
+            }
+        }
+    }
+
+    // returns number and point for biggest island
+    fn find_biggest_island(&self) -> (u32, String) {
+        let mut not_islands = HashSet::new();
+        let mut counts = HashMap::new();
+
+        not_islands.insert(String::from("."));
+
+        for (i, row) in self.proximity_map.iter().enumerate() {
+            for (j, col) in row.iter().enumerate() {
+                // border points belongs to unlimited islands
+                if i == 0 || i == 9 || j == 0 || j == 9 {
+                    not_islands.insert(col.to_ascii_lowercase());
+                    continue;
+                }
+
+                counts
+                    .entry(col.to_ascii_lowercase())
+                    .and_modify(|v| *v += 1)
+                    .or_insert(1);
+            }
+        }
+
+        let keys: HashSet<String> = counts.keys().cloned().collect();
+        let island_keys = keys.difference(&not_islands);
+
+        let mut max_island = String::from(".");
+        let mut max_island_size = 0;
+
+        for key in island_keys {
+            if counts[key] > max_island_size {
+                max_island = key.clone();
+                max_island_size = counts[key];
+            }
+        }
+
+        println!("{:#?}", not_islands);
+        println!("{:#?}", counts);
+        println!("{:#?}", keys.difference(&not_islands));
+
+        (max_island_size, max_island)
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -144,7 +236,6 @@ mod tests {
     #[test]
     fn test_find_closest_points_two_candidates() {
         // A..
-        // .B.
         // ..C
         let points = vec![
             Point::new("A", 0, 0),
@@ -158,6 +249,74 @@ mod tests {
         assert_eq!(2, closest.len());
         assert_eq!(true, closest.contains(&&points[0]));
         assert_eq!(true, closest.contains(&&points[1]));
+    }
+
+    #[test]
+    fn test_world_build_proximity_map() {
+        let points = vec![
+            Point::new("A", 1, 1),
+            Point::new("B", 1, 6),
+            Point::new("C", 8, 3),
+            Point::new("D", 3, 4),
+            Point::new("E", 5, 5),
+            Point::new("F", 8, 9),
+        ];
+
+        let world = World::new(points);
+
+        let mut proximity_map_str = String::new();
+        for row in world.proximity_map {
+            for col in row {
+                proximity_map_str.push_str(&col);
+            }
+            proximity_map_str.push_str("\n");
+        }
+
+        let expected_proximity_map_str = indoc!["
+            aaaaa.cccc
+            aAaaa.cccc
+            aaaddecccc
+            aadddeccCc
+            ..dDdeeccc
+            bb.deEeecc
+            bBb.eeee..
+            bbb.eeefff
+            bbb.eeffff
+            bbb.ffffFf
+        "];
+
+        assert_eq!(proximity_map_str, expected_proximity_map_str);
+    }
+
+    #[test]
+    fn test_world_find_biggest_island() {
+        let points = vec![
+            Point::new("A", 1, 1),
+            Point::new("B", 1, 6),
+            Point::new("C", 8, 3),
+            Point::new("D", 3, 4),
+            Point::new("E", 5, 5),
+            Point::new("F", 8, 9),
+        ];
+
+        let world = World::new(points);
+
+        let (biggest_island_size, biggest_island) = world.find_biggest_island();
+
+        // aaaaa.cccc
+        // aAaaa.cccc
+        // aaaddecccc
+        // aadddeccCc
+        // ..dDdeeccc
+        // bb.deEeecc
+        // bBb.eeee..
+        // bbb.eeefff
+        // bbb.eeffff
+        // bbb.ffffFf
+
+
+        assert_eq!("e".to_string(), biggest_island);
+        assert_eq!(17, biggest_island_size);
     }
 
     #[test]
@@ -178,7 +337,6 @@ mod tests {
             map[point.y as usize][point.x as usize] = point.id.clone();
         }
 
-
         let mut map_str = String::new();
         for row in &map {
             for col in row {
@@ -186,34 +344,6 @@ mod tests {
             }
             map_str.push_str("\n");
         }
-
-        let expected_map_str = indoc!["
-            ..........
-            .A........
-            ..........
-            ........C.
-            ...D......
-            .....E....
-            .B........
-            ..........
-            ..........
-            ........F.
-        "];
-
-        assert_eq!(expected_map_str, map_str);
-
-        let expected_proximity_map = indoc!["
-            aaaaa.cccc
-            aAaaa.cccc
-            aaaddecccc
-            aadddeccCc
-            ..dDdeeccc
-            bb.deEeecc
-            bBb.eeee..
-            bbb.eeefff
-            bbb.eeffff
-            bbb.ffffFf
-        "];
 
         let mut proximity_map_str = String::new();
 
@@ -237,10 +367,37 @@ mod tests {
             proximity_map_str.push_str("\n");
         }
 
-        assert_eq!(expected_proximity_map, proximity_map_str);
+        let expected_map_str = indoc!["
+            ..........
+            .A........
+            ..........
+            ........C.
+            ...D......
+            .....E....
+            .B........
+            ..........
+            ..........
+            ........F.
+        "];
+
+        let expected_proximity_map_str = indoc!["
+            aaaaa.cccc
+            aAaaa.cccc
+            aaaddecccc
+            aadddeccCc
+            ..dDdeeccc
+            bb.deEeecc
+            bBb.eeee..
+            bbb.eeefff
+            bbb.eeffff
+            bbb.ffffFf
+        "];
+
+        assert_eq!(expected_map_str, map_str);
+        assert_eq!(expected_proximity_map_str, proximity_map_str);
 
         // println!("{}", proximity_map_str);
-        // println!("{}", expected_proximity_map);
+        // println!("{}", expected_proximity_map_str);
     }
 }
 
