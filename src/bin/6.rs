@@ -188,21 +188,21 @@ impl World {
         }
 
         let keys: HashSet<String> = counts.keys().cloned().collect();
-        let island_keys = keys.difference(&not_islands);
+        let real_islands = keys.difference(&not_islands);
 
         let mut max_island = String::from(".");
         let mut max_island_size = 0;
 
-        for key in island_keys {
+        for key in real_islands {
             if counts[key] > max_island_size {
                 max_island = key.clone();
                 max_island_size = counts[key];
             }
         }
 
-        println!("{:#?}", not_islands);
-        println!("{:#?}", counts);
-        println!("{:#?}", keys.difference(&not_islands));
+        // println!("{:#?}", not_islands);
+        // println!("{:#?}", counts);
+        // println!("{:#?}", keys.difference(&not_islands));
 
         (max_island_size, max_island)
     }
