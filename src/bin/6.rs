@@ -70,7 +70,6 @@ extern crate utils;
 
 use std::collections::{HashMap, HashSet};
 
-
 #[derive(Debug, Eq, Clone)]
 pub struct Point {
     id: String, // use &str ?
@@ -86,14 +85,15 @@ impl PartialEq for Point {
 
 impl Point {
     pub fn new(id: &str, x: i32, y: i32) -> Point {
-        Point { id: String::from(id), x, y }
+        Point {
+            id: String::from(id),
+            x,
+            y,
+        }
     }
 
     pub fn rectilinear_distance(&self, b: &Point) -> u32 {
-        (
-            (self.x as i32 - b.x as i32).abs() +
-            (self.y as i32 - b.y as i32).abs()
-        ) as u32
+        ((self.x as i32 - b.x as i32).abs() + (self.y as i32 - b.y as i32).abs()) as u32
     }
 
     //
@@ -131,7 +131,11 @@ impl World {
     fn new(points: Vec<Point>, width: usize, height: usize) -> World {
         let map = vec![vec![String::from("."); width]; height];
         let proximity_map = vec![vec![String::from("."); width]; height]; // 10x10
-        let mut world = World { points, map, proximity_map };
+        let mut world = World {
+            points,
+            map,
+            proximity_map,
+        };
 
         world.build_map();
         world.build_proximity_map();
@@ -225,11 +229,10 @@ fn main() {
     let mut points = vec![];
 
     for (i, line) in input.lines().enumerate() {
-        let xy: Vec<i32> = line.split(",")
+        let xy: Vec<i32> = line
+            .split(",")
             .map(|s| s.trim())
-            .filter_map(|s| {
-                s.parse::<i32>().ok()
-            })
+            .filter_map(|s| s.parse::<i32>().ok())
             .collect();
 
         let point = Point::new(&format!("{}", i), xy[0], xy[1]);
@@ -254,9 +257,7 @@ mod tests {
 
     #[test]
     fn test_find_closest_points_one_candidate() {
-        let points = vec![
-            Point::new("A", 0, 0),
-        ];
+        let points = vec![Point::new("A", 0, 0)];
 
         let point = Point::new("B", 1, 1); // both A and C equally close
         let closest = point.find_closest_points(&points);
@@ -303,7 +304,8 @@ mod tests {
             proximity_map_str.push_str("\n");
         }
 
-        let expected_proximity_map_str = indoc!["
+        let expected_proximity_map_str = indoc![
+            "
             aaaaa.cccc
             aAaaa.cccc
             aaaddecccc
@@ -314,7 +316,8 @@ mod tests {
             bbb.eeefff
             bbb.eeffff
             bbb.ffffFf
-        "];
+        "
+        ];
 
         assert_eq!(proximity_map_str, expected_proximity_map_str);
     }
@@ -344,7 +347,6 @@ mod tests {
         // bbb.eeefff
         // bbb.eeffff
         // bbb.ffffFf
-
 
         assert_eq!("e".to_string(), biggest_island);
         assert_eq!(17, biggest_island_size);
@@ -398,7 +400,8 @@ mod tests {
             proximity_map_str.push_str("\n");
         }
 
-        let expected_map_str = indoc!["
+        let expected_map_str = indoc![
+            "
             ..........
             .A........
             ..........
@@ -409,9 +412,11 @@ mod tests {
             ..........
             ..........
             ........F.
-        "];
+        "
+        ];
 
-        let expected_proximity_map_str = indoc!["
+        let expected_proximity_map_str = indoc![
+            "
             aaaaa.cccc
             aAaaa.cccc
             aaaddecccc
@@ -422,7 +427,8 @@ mod tests {
             bbb.eeefff
             bbb.eeffff
             bbb.ffffFf
-        "];
+        "
+        ];
 
         assert_eq!(expected_map_str, map_str);
         assert_eq!(expected_proximity_map_str, proximity_map_str);
