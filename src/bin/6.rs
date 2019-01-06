@@ -66,6 +66,7 @@
 // What is the size of the largest area that isn't infinite?
 //
 extern crate indoc;
+extern crate utils;
 
 use std::collections::{HashMap, HashSet};
 
@@ -127,9 +128,9 @@ struct World {
 }
 
 impl World {
-    fn new(points: Vec<Point>) -> World {
-        let map = vec![vec![String::from("."); 10]; 10]; // 10x10
-        let proximity_map = vec![vec![String::from("."); 10]; 10]; // 10x10
+    fn new(points: Vec<Point>, width: usize, height: usize) -> World {
+        let map = vec![vec![String::from("."); width]; height];
+        let proximity_map = vec![vec![String::from("."); width]; height]; // 10x10
         let mut world = World { points, map, proximity_map };
 
         world.build_map();
@@ -208,6 +209,36 @@ impl World {
     }
 }
 
+fn part_one(points: Vec<Point>) {
+    let width = points.iter().max_by_key(|p| p.x).unwrap().x as usize;
+    let height = points.iter().max_by_key(|p| p.y).unwrap().y as usize;
+
+    let world = World::new(points, width + 1, height + 1);
+    let (biggest_island_size, _) = world.find_biggest_island();
+
+    println!("--- Part 1 ---");
+    println!("Biggest island size: {:?}", biggest_island_size);
+}
+
+fn main() {
+    let input = utils::read_puzzle_input(6);
+    let mut points = vec![];
+
+    for (i, line) in input.lines().enumerate() {
+        let xy: Vec<i32> = line.split(",")
+            .map(|s| s.trim())
+            .filter_map(|s| {
+                s.parse::<i32>().ok()
+            })
+            .collect();
+
+        let point = Point::new(&format!("{}", i), xy[0], xy[1]);
+        points.push(point.clone());
+    }
+
+    part_one(points);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -262,7 +293,7 @@ mod tests {
             Point::new("F", 8, 9),
         ];
 
-        let world = World::new(points);
+        let world = World::new(points, 10, 10);
 
         let mut proximity_map_str = String::new();
         for row in world.proximity_map {
@@ -299,7 +330,7 @@ mod tests {
             Point::new("F", 8, 9),
         ];
 
-        let world = World::new(points);
+        let world = World::new(points, 10, 10);
 
         let (biggest_island_size, biggest_island) = world.find_biggest_island();
 
@@ -399,11 +430,4 @@ mod tests {
         // println!("{}", proximity_map_str);
         // println!("{}", expected_proximity_map_str);
     }
-}
-
-fn main() {
-    // let a = Point { id: "A", x: 1, y: 7 };
-    // let b = Point { id: "B", x: 8, y: 4 };
-
-    // rectilinear_distance(&a, &b);
 }
