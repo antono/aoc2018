@@ -192,6 +192,10 @@ impl World {
             }
         }
 
+        // let max = counts.iter().filter(|(k,v)| !not_islands.contains(*k)).max_by_key(|(k,v)| v).unwrap();
+
+        // println!("{:?}", max)
+
         let keys: HashSet<String> = counts.keys().cloned().collect();
         let real_islands = keys.difference(&not_islands);
 
@@ -204,6 +208,7 @@ impl World {
                 max_island_size = counts[key];
             }
         }
+
 
         // println!("{:#?}", not_islands);
         // println!("{:#?}", counts);
