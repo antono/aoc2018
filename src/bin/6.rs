@@ -101,7 +101,7 @@ impl Point {
     //
     pub fn find_closest_points<'a>(&self, points: &'a Vec<Point>) -> Vec<&'a Point> {
         let mut closest_points = vec![]; // HashSet maybe?
-        let mut closest_distance = 1000;
+        let mut closest_distance = std::u32::MAX;
 
         for candidate in points {
             let distance = self.rectilinear_distance(candidate);
