@@ -63,7 +63,7 @@ fn part_one() {
     let mut result: i32 = 0;
 
     for line in input.lines() {
-        let num = line.parse::<i32>().unwrap_or_default();
+        let num: i32 = line.parse().unwrap_or_default();
         result += num;
     }
 
@@ -79,7 +79,7 @@ fn part_two() {
     seen_freqs.insert(result);
 
     for line in input.lines().cycle() {
-        let num = line.parse::<i32>().unwrap_or_default();
+        let num: i32 = line.parse().unwrap_or_default();
         result += num;
 
         if !seen_freqs.insert(result) {
