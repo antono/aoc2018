@@ -112,7 +112,7 @@ fn part_two() {
             ids_count += 1;
             results
                 .entry(id_changed)
-                .and_modify(|vec| vec.push(id.clone()))
+                .and_modify(|vec| vec.push(id))
                 .or_insert(vec![id]);
         }
     }
