@@ -63,45 +63,171 @@
 extern crate regex;
 extern crate utils;
 
+use std::collections::HashMap;
+use std::fmt;
+
 use regex::Regex;
 
+#[derive(Clone, Debug)]
+struct Edge {
+    from: String,
+    to: String,
+}
 
-fn parse_input(input: String) -> Vec<(String, String)> {
-    let re = Regex::new(r"Step (.) must be finished before step (.) can begin.").unwrap();
-    let mut result: Vec<(String, String)> = vec![];
+struct DAG {
+    edges: Vec<Edge>,
+    nodes: HashMap<String, Vec<String>>,
+}
 
-    for cap in re.captures_iter(&input) {
-        result.push((String::from(&cap[1]), String::from(&cap[2])));
+impl DAG {
+    fn parse_input(input: String) -> DAG {
+        let re = Regex::new(r"Step (.) must be finished before step (.) can begin.").unwrap();
+        let mut dag: DAG = DAG::new();
+
+        for cap in re.captures_iter(&input) {
+            dag.add_edge(Edge {
+                from: String::from(&cap[1]),
+                to: String::from(&cap[2]),
+            });
+        }
+
+        dag
     }
 
-    result
+    pub fn new() -> Self {
+        Self {
+            edges: vec![],
+            nodes: HashMap::new(),
+        }
+    }
+    pub fn add_edge(&mut self, edge: Edge) {
+        self.edges.push(edge.clone());
+        self.nodes.entry(edge.from.clone()).or_insert(vec![]);
+        self.nodes
+            .entry(edge.to)
+            .or_default()
+            .push(edge.from.clone());
+    }
+
+    // L ← Empty list that will contain the sorted elements
+    // S ← Set of all nodes with no incoming edge
+    //
+    // while S is not empty do
+    //     remove a node n from S
+    //     add n to L
+    //     for each node m with an edge e from n to m do
+    //         remove edge e from the graph
+    //         if m has no other incoming edges then
+    //             insert m into S
+    //
+    pub fn topological_sort(&mut self) -> Vec<String> {
+        let mut output = Vec::new();
+        while let Some(root_nodes) = self.find_root_nodes() {
+            dbg!(&root_nodes);
+            println!("{}", self);
+            for node in root_nodes.iter() {
+                self.nodes.remove(node);
+                output.push(node.clone());
+                for (_, incoming) in self.nodes.iter_mut() {
+                    if let Some(idx) = incoming.iter().position(|i| i == node) {
+                        incoming.remove(idx);
+                    }
+                }
+            }
+        }
+        output
+    }
+
+    // Root nodes have no incoming edges
+    pub fn find_root_nodes(&self) -> Option<Vec<String>> {
+        let mut roots = vec![];
+        for (node, incoming) in self.nodes.iter() {
+            if incoming.is_empty() {
+                roots.push(node.clone());
+            }
+        }
+
+        if roots.is_empty() {
+            None
+        } else {
+            roots.sort_by(|a, b| a.cmp(b));
+            Some(roots)
+        }
+    }
+}
+
+impl fmt::Display for DAG {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "DAG: [\n")?;
+        for (node, incoming) in self.nodes.iter() {
+            write!(f, "{} -> {}\n", node, incoming.join(", "))?;
+        }
+        write!(f, "]")
+    }
 }
 
 fn main() {
     let data = utils::read_puzzle_input(7);
-    let _pairs = parse_input(data);
+    let mut dag = DAG::parse_input(data);
+
+    println!("{}", dag);
+
+    println!(
+        "Roots: {}",
+        dag.find_root_nodes()
+            .expect("ROOTS EXPECTED")
+            .clone()
+            .join(", ")
+    );
+    println!("DAG Sorted: {}", dag.topological_sort().join(""))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_input() {
-        let data = utils::read_puzzle_input(7);
-        assert!(data.len() > 0);
+    fn dag_fixture() -> DAG {
+        DAG::parse_input(String::from(
+            "
+            Step C must be finished before step A can begin.
+            Step C must be finished before step F can begin.
+            Step A must be finished before step B can begin.
+            Step A must be finished before step D can begin.
+            Step B must be finished before step E can begin.
+            Step D must be finished before step E can begin.
+            Step F must be finished before step E can begin.
+            ",
+        ))
+    }
 
-        let result = parse_input(String::from(
+    #[test]
+    fn test_find_root_nodes() {
+        let dag = dag_fixture();
+
+        assert_eq!(Some(vec![String::from("C")]), dag.find_root_nodes());
+    }
+
+    #[test]
+    fn test_parse_input() {
+        let dag = DAG::parse_input(String::from(
             "Step R must be finished before step Y can begin.
             Step X must be finished before step Y can begin.",
         ));
 
-        let (a, b) = result[0].clone();
-        let (c, d) = result[1].clone();
+        let res0 = dag.edges[0].clone();
+        let res1 = dag.edges[1].clone();
 
-        assert_eq!(a, String::from('R'));
-        assert_eq!(b, String::from('Y'));
-        assert_eq!(c, String::from('X'));
-        assert_eq!(d, String::from('Y'));
+        assert_eq!(res0.from, String::from('R'));
+        assert_eq!(res0.to, String::from('Y'));
+        assert_eq!(res1.from, String::from('X'));
+        assert_eq!(res1.to, String::from('Y'));
+    }
+
+    #[test]
+    fn test_topological_sort() {
+        let mut dag = dag_fixture();
+
+        println!("{}", dag);
+        assert_eq!("CABDFE", dag.topological_sort().join(""))
     }
 }
