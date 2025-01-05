@@ -80,7 +80,7 @@ struct DAG {
 }
 
 impl DAG {
-    fn parse_input(input: String) -> DAG {
+    fn from_string(input: String) -> DAG {
         let re = Regex::new(r"Step (.) must be finished before step (.) can begin.").unwrap();
         let mut dag: DAG = DAG::new();
 
@@ -168,7 +168,7 @@ impl fmt::Display for DAG {
 
 fn main() {
     let data = utils::read_puzzle_input(7);
-    let mut dag = DAG::parse_input(data);
+    let mut dag = DAG::from_string(data);
 
     println!("{}", dag);
 
@@ -187,7 +187,7 @@ mod tests {
     use super::*;
 
     fn dag_fixture() -> DAG {
-        DAG::parse_input(String::from(
+        DAG::from_string(String::from(
             "
             Step C must be finished before step A can begin.
             Step C must be finished before step F can begin.
@@ -209,7 +209,7 @@ mod tests {
 
     #[test]
     fn test_parse_input() {
-        let dag = DAG::parse_input(String::from(
+        let dag = DAG::from_string(String::from(
             "Step R must be finished before step Y can begin.
             Step X must be finished before step Y can begin.",
         ));
