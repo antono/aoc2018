@@ -123,17 +123,32 @@ impl DAG {
     pub fn topological_sort(&mut self) -> Vec<String> {
         let mut output = Vec::new();
         while let Some(root_nodes) = self.find_root_nodes() {
-            dbg!(&root_nodes);
             println!("{}", self);
             for node in root_nodes.iter() {
                 self.nodes.remove(node);
                 output.push(node.clone());
+                println!("Pushing node {node}");
                 for (_, incoming) in self.nodes.iter_mut() {
                     if let Some(idx) = incoming.iter().position(|i| i == node) {
                         incoming.remove(idx);
                     }
                 }
             }
+        }
+        output
+    }
+
+    pub fn aoc_sort(&mut self) -> Vec<String> {
+        let mut output: Vec<String> = Vec::new();
+        while let Some(root) = self.next_root() {
+            self.nodes.remove(&root);
+            println!("Pushing next node {root}");
+            for (_, incoming) in self.nodes.iter_mut() {
+                if let Some(idx) = incoming.iter().position(|i| i == &root) {
+                    incoming.remove(idx);
+                }
+            }
+            output.push(root.clone());
         }
         output
     }
@@ -154,15 +169,31 @@ impl DAG {
             Some(roots)
         }
     }
+
+    pub fn next_root(&self) -> Option<String> {
+        if let Some(roots) = self.find_root_nodes() {
+            Some(roots[0].clone())
+        } else {
+            None
+        }
+    }
 }
 
 impl fmt::Display for DAG {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "DAG: [\n")?;
         for (node, incoming) in self.nodes.iter() {
-            write!(f, "{} -> {}\n", node, incoming.join(", "))?;
+            write!(f, "  {} -> [{}]\n", node, incoming.join(", "))?;
         }
-        write!(f, "]")
+        write!(f, "]\n");
+        write!(
+            f,
+            "Roots: {}",
+            self.find_root_nodes()
+                .expect("roots expected")
+                .clone()
+                .join(", ")
+        )
     }
 }
 
@@ -170,23 +201,27 @@ fn main() {
     let data = utils::read_puzzle_input(7);
     let mut dag = DAG::from_string(data);
 
-    println!("{}", dag);
-
-    println!(
-        "Roots: {}",
-        dag.find_root_nodes()
-            .expect("ROOTS EXPECTED")
-            .clone()
-            .join(", ")
-    );
-    println!("DAG Sorted: {}", dag.topological_sort().join(""))
+    println!("DAG Sorted: {}", dag.aoc_sort().join(""))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn dag_input() -> DAG {
+        let data = utils::read_puzzle_input(7);
+        DAG::from_string(data)
+    }
+
     fn dag_fixture() -> DAG {
+        // Visually, these requirements look like this:
+        //
+        //   -->A--->B--
+        //  /    \      \
+        // C      -->D----->E
+        //  \           /
+        //   ---->F-----
+        //
         DAG::from_string(String::from(
             "
             Step C must be finished before step A can begin.
@@ -224,10 +259,18 @@ mod tests {
     }
 
     #[test]
+    fn test_aoc_sort() {
+        let mut dag = dag_fixture();
+
+        println!("{}", dag);
+        assert_eq!(dag.aoc_sort().join(""), "CABDFE")
+    }
+
+    #[test]
     fn test_topological_sort() {
         let mut dag = dag_fixture();
 
         println!("{}", dag);
-        assert_eq!("CABDFE", dag.topological_sort().join(""))
+        assert_eq!(dag.topological_sort().join(""), "CAFBDE")
     }
 }
