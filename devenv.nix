@@ -13,6 +13,7 @@
 
   # https://devenv.sh/languages/
   languages.rust.enable = true;
+  languages.nix.enable = true;
 
   # https://devenv.sh/processes/
   # processes.cargo-watch.exec = "cargo-watch";
