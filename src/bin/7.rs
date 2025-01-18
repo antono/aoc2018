@@ -37,9 +37,9 @@
 // Visually, these requirements look like this:
 //
 //   -->A--->B--
-//  /    \      \     / Y \
-// C      -->D----->E     Y
-//  \           /    \ X /
+//  /    \      \
+// C      -->D--->E
+//  \           /
 //   ---->F-----
 //
 // Your first goal is to determine the order in which the steps should be
