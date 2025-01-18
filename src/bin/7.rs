@@ -37,9 +37,9 @@
 // Visually, these requirements look like this:
 //
 //   -->A--->B--
-//  /    \      \
-// C      -->D----->E
-//  \           /
+//  /    \      \     / Y \
+// C      -->D----->E     Y
+//  \           /    \ X /
 //   ---->F-----
 //
 // Your first goal is to determine the order in which the steps should be
@@ -119,13 +119,14 @@ use regex::Regex;
 
 #[derive(Clone, Debug)]
 struct Edge {
-    from: String,
-    to: String,
+    from: Letter,
+    to: Letter,
 }
 
+#[derive(Debug, Clone)]
 struct DAG {
     edges: Vec<Edge>,
-    nodes: HashMap<String, Vec<String>>,
+    nodes: HashMap<Letter, Vec<Letter>>,
 }
 
 impl DAG {
@@ -135,8 +136,8 @@ impl DAG {
 
         for cap in re.captures_iter(&input) {
             dag.add_edge(Edge {
-                from: String::from(&cap[1]),
-                to: String::from(&cap[2]),
+                from: Letter::from_string(String::from(&cap[1])),
+                to: Letter::from_string(String::from(&cap[2])),
             });
         }
 
@@ -151,11 +152,8 @@ impl DAG {
     }
     pub fn add_edge(&mut self, edge: Edge) {
         self.edges.push(edge.clone());
-        self.nodes.entry(edge.from.clone()).or_insert(vec![]);
-        self.nodes
-            .entry(edge.to)
-            .or_default()
-            .push(edge.from.clone());
+        self.nodes.entry(edge.from).or_insert(vec![]);
+        self.nodes.entry(edge.to).or_default().push(edge.from);
     }
 
     // L ← Empty list that will contain the sorted elements
@@ -169,7 +167,7 @@ impl DAG {
     //         if m has no other incoming edges then
     //             insert m into S
     //
-    pub fn topological_sort(&mut self) -> Vec<String> {
+    pub fn topological_sort(&mut self) -> Vec<Letter> {
         let mut output = Vec::new();
         while let Some(root_nodes) = self.find_root_nodes() {
             println!("{}", self);
@@ -187,23 +185,41 @@ impl DAG {
         output
     }
 
-    pub fn aoc_sort(&mut self) -> Vec<String> {
-        let mut output: Vec<String> = Vec::new();
+    pub fn aoc_sort(&mut self) -> Vec<Letter> {
+        let mut output = vec![];
         while let Some(root) = self.next_root() {
-            self.nodes.remove(&root);
+            self.complete(root);
             println!("Pushing next node {root}");
-            for (_, incoming) in self.nodes.iter_mut() {
-                if let Some(idx) = incoming.iter().position(|i| i == &root) {
-                    incoming.remove(idx);
-                }
-            }
-            output.push(root.clone());
+            output.push(root);
         }
         output
     }
 
+    pub fn complete(&mut self, node: Letter) {
+        let has_key = self.nodes.contains_key(&node);
+        let removed = self.nodes.remove(&node);
+
+        println!("{}", self);
+        println!("Removed value: {}", has_key);
+        println!("Removed {}", node);
+        println!("{}", self);
+        println!(
+            "Keys: {}",
+            self.nodes.keys().map(|l| l.char).collect::<String>()
+        );
+        for (_, incoming) in self.nodes.iter_mut() {
+            if let Some(idx) = incoming.iter().position(|i| *i == node) {
+                incoming.remove(idx);
+                println!("Removing node from incoming: {}", idx)
+            }
+        }
+        if let Some(next_root) = self.next_root() {
+            println!("Next: {}", next_root);
+        }
+    }
+
     // Root nodes have no incoming edges
-    pub fn find_root_nodes(&self) -> Option<Vec<String>> {
+    pub fn find_root_nodes(&self) -> Option<Vec<Letter>> {
         let mut roots = vec![];
         for (node, incoming) in self.nodes.iter() {
             if incoming.is_empty() {
@@ -214,14 +230,14 @@ impl DAG {
         if roots.is_empty() {
             None
         } else {
-            roots.sort_by(|a, b| a.cmp(b));
+            roots.sort_by(|a, b| a.char.cmp(&b.char));
             Some(roots)
         }
     }
 
-    pub fn next_root(&self) -> Option<String> {
+    pub fn next_root(&self) -> Option<Letter> {
         if let Some(roots) = self.find_root_nodes() {
-            Some(roots[0].clone())
+            Some(roots[0])
         } else {
             None
         }
@@ -232,25 +248,236 @@ impl fmt::Display for DAG {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "DAG: [\n")?;
         for (node, incoming) in self.nodes.iter() {
-            write!(f, "  {} -> [{}]\n", node, incoming.join(", "))?;
+            let incoming = incoming
+                .iter()
+                .map(|l| l.as_string())
+                .collect::<Vec<String>>()
+                .join(", ");
+            write!(f, "  {} -> [{}]\n", node, incoming)?;
         }
-        write!(f, "]\n")?;
+        write!(f, "]\n")
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash)]
+struct Letter {
+    char: char,
+    seconds: usize,
+    in_progress: usize,
+}
+
+impl PartialEq for Letter {
+    fn eq(&self, other: &Self) -> bool {
+        self.char == other.char
+    }
+}
+
+impl Eq for Letter {}
+
+impl fmt::Display for Letter {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Roots: {}",
-            self.find_root_nodes()
-                .expect("roots expected")
-                .clone()
-                .join(", ")
+            "Letter(char: {}, in_progress: {}, seconds: {}, done: {})",
+            self.char,
+            self.in_progress,
+            self.seconds,
+            self.is_done()
         )
+    }
+}
+
+impl Letter {
+    fn from_string(str: String) -> Letter {
+        let char = str.chars().next().unwrap().to_ascii_lowercase();
+        Self {
+            char,
+            seconds: 60 + Self::alphabetical_index(&str).unwrap(),
+            in_progress: 0,
+        }
+    }
+
+    fn from_char(char: char) -> Letter {
+        let char = char.to_ascii_lowercase();
+        Self {
+            char,
+            seconds: 60 + (char as usize - 'a' as usize) + 1,
+            in_progress: 0,
+        }
+    }
+
+    fn as_string(&self) -> String {
+        String::from(self.char)
+    }
+
+    fn alphabetical_index(letter: &str) -> Option<usize> {
+        if letter.len() == 1 {
+            let c = letter.chars().next().unwrap().to_ascii_lowercase();
+
+            if c.is_alphabetic() {
+                return Some((c as usize - 'a' as usize) + 1);
+            }
+        }
+        None
+    }
+
+    pub fn is_done(self) -> bool {
+        self.seconds == self.in_progress
+    }
+}
+
+#[derive(Debug, Clone)]
+struct AssemblyLine {
+    workers: Vec<Option<Letter>>,
+    dag: DAG,
+    seconds: usize,
+    completed: Vec<Letter>,
+}
+
+impl AssemblyLine {
+    fn from_dag(dag: DAG, workers_count: usize) -> AssemblyLine {
+        Self {
+            workers: vec![None; workers_count],
+            dag,
+            seconds: 0,
+            completed: Vec::new(),
+        }
+    }
+
+    fn letters_to_string(letters: Vec<Letter>) -> String {
+        letters
+            .iter()
+            .map(|l| l.char.to_ascii_uppercase())
+            .collect()
+    }
+
+    pub fn assign(&mut self, letter: Option<Letter>, idx: usize) {
+        self.workers[idx] = letter;
+        if let Some(letter) = self.workers[idx] {
+            println!("assigned: {idx}, letter: {letter}");
+        }
+    }
+
+    pub fn unassign(&mut self, idx: usize) {
+        if let Some(letter) = self.workers[idx] {
+            println!("unassigned: {idx}, letter: {letter}");
+        }
+        self.workers[idx] = None
+    }
+
+    pub fn next_step(&self) -> Option<Letter> {
+        if let Some(roots) = self.dag.find_root_nodes() {
+            let in_progress: Vec<Letter> = self
+                .workers
+                .iter()
+                .filter(|w| w.is_some())
+                .map(|l| l.unwrap())
+                .collect();
+            let valid_steps: Vec<Letter> = roots
+                .iter()
+                .filter(|letter| !in_progress.contains(*letter))
+                .map(|l| *l)
+                .collect();
+            println!(
+                "Next valid steps: {}",
+                Self::letters_to_string(valid_steps.clone())
+            );
+            if let Some(letter) = valid_steps.get(0) {
+                return Some(*letter);
+            } else {
+                return None;
+            }
+        }
+        None
+    }
+
+    fn complete(&mut self, letter: Letter) {
+        self.completed.push(letter);
+        self.dag.complete(letter);
+    }
+
+    pub fn tick(&mut self) -> Vec<(usize, Letter)> {
+        let mut completed: Vec<(usize, Letter)> = vec![];
+        for (idx, letter) in self.workers.iter_mut().enumerate() {
+            match letter {
+                Some(step) => {
+                    step.in_progress += 1;
+                    println!(
+                        "sec: {}, worker: {}, step: {}",
+                        self.seconds,
+                        idx,
+                        step.clone()
+                    );
+                    if step.is_done() {
+                        completed.push((idx, *step));
+                    }
+                }
+                None => {
+                    println!("sec: {}, worker: {}, step: None", self.seconds, idx);
+                }
+            }
+        }
+
+        self.seconds += 1;
+        completed
+    }
+
+    pub fn free_workers(&self) -> Vec<usize> {
+        let mut free = vec![];
+        for (idx, worker) in self.workers.iter().enumerate() {
+            if worker.is_none() {
+                free.push(idx);
+            }
+        }
+        free
+    }
+
+    pub fn process(&mut self) {
+        while self.seconds < 1000 {
+            // assign work to free workers
+            for idx in self.free_workers() {
+                let step = self.next_step();
+                self.assign(step, idx);
+            }
+            // time forward
+            let completed = self.tick();
+            // unassign completed from workers
+            for (idx, letter) in completed {
+                self.complete(letter);
+                println!(
+                    "Completed steps: {}",
+                    Self::letters_to_string(self.completed.clone())
+                );
+                self.unassign(idx);
+            }
+        }
+
+        print!("Done in {}", self.seconds);
     }
 }
 
 fn main() {
     let data = utils::read_puzzle_input(7);
-    let mut dag = DAG::from_string(data);
+    let mut dag = DAG::from_string(data.clone());
 
-    println!("DAG Sorted: {}", dag.aoc_sort().join(""))
+    println!(
+        "DAG Sorted: {}",
+        AssemblyLine::letters_to_string(dag.aoc_sort())
+    );
+    // for letter in dag.aoc_sort() {
+    //     for edge in dag2.edges.iter() {
+    //         if edge.from == letter {
+    //             println!("{}, {}", edge.from, edge.to)
+    //         }
+    //     }
+    // }
+
+    // println!("{}", dag2);
+
+    let dag = DAG::from_string(data);
+    let mut assembly_line = AssemblyLine::from_dag(dag, 5);
+    // dbg!(assembly_line.clone());
+    assembly_line.process();
 }
 
 #[cfg(test)]
@@ -260,6 +487,10 @@ mod tests {
     fn dag_input() -> DAG {
         let data = utils::read_puzzle_input(7);
         DAG::from_string(data)
+    }
+
+    fn str_to_letters(string: &str) -> Vec<Letter> {
+        string.chars().map(|c| Letter::from_char(c)).collect()
     }
 
     fn dag_fixture() -> DAG {
@@ -287,8 +518,7 @@ mod tests {
     #[test]
     fn test_find_root_nodes() {
         let dag = dag_fixture();
-
-        assert_eq!(Some(vec![String::from("C")]), dag.find_root_nodes());
+        assert_eq!(str_to_letters("C"), dag.find_root_nodes().unwrap());
     }
 
     #[test]
@@ -301,23 +531,77 @@ mod tests {
         let res0 = dag.edges[0].clone();
         let res1 = dag.edges[1].clone();
 
-        assert_eq!(res0.from, String::from('R'));
-        assert_eq!(res0.to, String::from('Y'));
-        assert_eq!(res1.from, String::from('X'));
-        assert_eq!(res1.to, String::from('Y'));
+        assert_eq!(res0.from, Letter::from_char('R'));
+        assert_eq!(res0.to, Letter::from_char('Y'));
+        assert_eq!(res1.from, Letter::from_char('X'));
+        assert_eq!(res1.to, Letter::from_char('Y'));
     }
 
     #[test]
     fn test_aoc_sort() {
+        // example input
         let mut dag = dag_fixture();
-        assert_eq!(dag.aoc_sort().join(""), "CABDFE");
+        let res = dag.aoc_sort();
+        assert_eq!(res, str_to_letters("CABDFE"));
+
+        // my input
         let mut dag = dag_input();
-        assert_eq!(dag.aoc_sort().join(""), "CFMNLOAHRKPTWBJSYZVGUQXIDE")
+        let res = dag.aoc_sort();
+        assert_eq!(res, str_to_letters("CFMNLOAHRKPTWBJSYZVGUQXIDE"));
     }
 
     #[test]
     fn test_topological_sort() {
         let mut dag = dag_fixture();
-        assert_eq!(dag.topological_sort().join(""), "CAFBDE")
+        let sorted = dag.topological_sort();
+        assert_eq!(sorted, str_to_letters("CAFBDE"));
+    }
+
+    #[test]
+    fn test_letter() {
+        let letter = Letter::from_char('A');
+        assert_eq!(letter.char, 'a');
+        assert_eq!(letter.seconds, 61);
+        let letter = Letter::from_char('Z');
+        assert_eq!(letter.char, 'z');
+        assert_eq!(letter.seconds, 86);
+
+        assert_eq!(
+            Letter {
+                char: 'c',
+                seconds: 1,
+                in_progress: 2
+            },
+            Letter {
+                char: 'c',
+                seconds: 3,
+                in_progress: 4,
+            }
+        );
+    }
+
+    // Second   Worker 1   Worker 2   Done
+    //    0        C          .
+    //    1        C          .
+    //    2        C          .
+    //    3        A          F       C
+    //    4        B          F       CA
+    //    5        B          F       CA
+    //    6        D          F       CAB
+    //    7        D          F       CAB
+    //    8        D          F       CAB
+    //    9        D          .       CABF
+    //   10        E          .       CABFD
+    //   11        E          .       CABFD
+    //   12        E          .       CABFD
+    //   13        E          .       CABFD
+    //   14        E          .       CABFD
+    //   15        .          .       CABFDE
+    //
+    #[test]
+    fn test_pipeline() {
+        let dag = dag_fixture();
+        let mut _assembly_line = AssemblyLine::from_dag(dag, 2);
+        // assert_eq!(assembly_line.workers[0].unwrap().char, 'c')
     }
 }
