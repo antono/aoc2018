@@ -112,10 +112,10 @@
 extern crate regex;
 extern crate utils;
 
+use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
-
-use regex::Regex;
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug)]
 struct Edge {
@@ -170,11 +170,11 @@ impl DAG {
     pub fn topological_sort(&mut self) -> Vec<Letter> {
         let mut output = Vec::new();
         while let Some(root_nodes) = self.find_root_nodes() {
-            println!("{}", self);
+            // println!("{}", self);
             for node in root_nodes.iter() {
                 self.nodes.remove(node);
                 output.push(node.clone());
-                println!("Pushing node {node}");
+                // println!("Pushing node {node}");
                 for (_, incoming) in self.nodes.iter_mut() {
                     if let Some(idx) = incoming.iter().position(|i| i == node) {
                         incoming.remove(idx);
@@ -189,32 +189,19 @@ impl DAG {
         let mut output = vec![];
         while let Some(root) = self.next_root() {
             self.complete(root);
-            println!("Pushing next node {root}");
+            // println!("Pushing next node {root}");
             output.push(root);
         }
         output
     }
 
     pub fn complete(&mut self, node: Letter) {
-        let has_key = self.nodes.contains_key(&node);
-        let removed = self.nodes.remove(&node);
-
-        println!("{}", self);
-        println!("Removed value: {}", has_key);
-        println!("Removed {}", node);
-        println!("{}", self);
-        println!(
-            "Keys: {}",
-            self.nodes.keys().map(|l| l.char).collect::<String>()
-        );
+        self.nodes.remove(&node);
         for (_, incoming) in self.nodes.iter_mut() {
             if let Some(idx) = incoming.iter().position(|i| *i == node) {
                 incoming.remove(idx);
-                println!("Removing node from incoming: {}", idx)
+                // println!("Removing node from incoming: {}", idx)
             }
-        }
-        if let Some(next_root) = self.next_root() {
-            println!("Next: {}", next_root);
         }
     }
 
@@ -259,7 +246,7 @@ impl fmt::Display for DAG {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash)]
+#[derive(Debug, Clone, Eq, Copy)]
 struct Letter {
     char: char,
     seconds: usize,
@@ -272,7 +259,11 @@ impl PartialEq for Letter {
     }
 }
 
-impl Eq for Letter {}
+impl Hash for Letter {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.char.hash(state);
+    }
+}
 
 impl fmt::Display for Letter {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -353,15 +344,15 @@ impl AssemblyLine {
 
     pub fn assign(&mut self, letter: Option<Letter>, idx: usize) {
         self.workers[idx] = letter;
-        if let Some(letter) = self.workers[idx] {
-            println!("assigned: {idx}, letter: {letter}");
-        }
+        // if let Some(letter) = self.workers[idx] {
+        //     println!("assigned: {idx}, letter: {letter}");
+        // }
     }
 
     pub fn unassign(&mut self, idx: usize) {
-        if let Some(letter) = self.workers[idx] {
-            println!("unassigned: {idx}, letter: {letter}");
-        }
+        // if let Some(letter) = self.workers[idx] {
+        //     println!("unassigned: {idx}, letter: {letter}");
+        // }
         self.workers[idx] = None
     }
 
@@ -378,10 +369,10 @@ impl AssemblyLine {
                 .filter(|letter| !in_progress.contains(*letter))
                 .map(|l| *l)
                 .collect();
-            println!(
-                "Next valid steps: {}",
-                Self::letters_to_string(valid_steps.clone())
-            );
+            // println!(
+            //     "Next valid steps: {}",
+            //     Self::letters_to_string(valid_steps.clone())
+            // );
             if let Some(letter) = valid_steps.get(0) {
                 return Some(*letter);
             } else {
@@ -402,18 +393,12 @@ impl AssemblyLine {
             match letter {
                 Some(step) => {
                     step.in_progress += 1;
-                    println!(
-                        "sec: {}, worker: {}, step: {}",
-                        self.seconds,
-                        idx,
-                        step.clone()
-                    );
                     if step.is_done() {
                         completed.push((idx, *step));
                     }
                 }
                 None => {
-                    println!("sec: {}, worker: {}, step: None", self.seconds, idx);
+                    // println!("sec: {}, worker: {}, step: None", self.seconds, idx);
                 }
             }
         }
@@ -432,8 +417,13 @@ impl AssemblyLine {
         free
     }
 
+    fn is_complete(&self) -> bool {
+        let all_workers_are_free = self.workers.iter().all(|w| w.is_none());
+        all_workers_are_free && self.next_step().is_none()
+    }
+
     pub fn process(&mut self) {
-        while self.seconds < 1000 {
+        while !self.is_complete() {
             // assign work to free workers
             for idx in self.free_workers() {
                 let step = self.next_step();
@@ -444,15 +434,13 @@ impl AssemblyLine {
             // unassign completed from workers
             for (idx, letter) in completed {
                 self.complete(letter);
-                println!(
-                    "Completed steps: {}",
-                    Self::letters_to_string(self.completed.clone())
-                );
+                // println!(
+                //     "Completed steps: {}",
+                //     Self::letters_to_string(self.completed.clone())
+                // );
                 self.unassign(idx);
             }
         }
-
-        print!("Done in {}", self.seconds);
     }
 }
 
@@ -464,20 +452,10 @@ fn main() {
         "DAG Sorted: {}",
         AssemblyLine::letters_to_string(dag.aoc_sort())
     );
-    // for letter in dag.aoc_sort() {
-    //     for edge in dag2.edges.iter() {
-    //         if edge.from == letter {
-    //             println!("{}, {}", edge.from, edge.to)
-    //         }
-    //     }
-    // }
-
-    // println!("{}", dag2);
-
     let dag = DAG::from_string(data);
     let mut assembly_line = AssemblyLine::from_dag(dag, 5);
-    // dbg!(assembly_line.clone());
     assembly_line.process();
+    println!("Assembly done in: {} seconds", assembly_line.seconds);
 }
 
 #[cfg(test)]
@@ -578,6 +556,19 @@ mod tests {
                 in_progress: 4,
             }
         );
+    }
+
+    #[test]
+    fn test_has_map_with_letter_key() {
+        let mut hm: HashMap<Letter, Letter> = HashMap::new();
+        let a = Letter::from_char('a');
+        let b = Letter::from_char('b');
+        let mut b2 = Letter::from_char('b');
+        b2.seconds = 666;
+        assert_eq!(b2, b);
+        hm.insert(a, b);
+        assert!(hm.contains_key(&a));
+        assert_eq!(hm.remove(&a), Some(b));
     }
 
     // Second   Worker 1   Worker 2   Done
